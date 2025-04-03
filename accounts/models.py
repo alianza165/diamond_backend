@@ -1,17 +1,35 @@
-from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.models import User
+from PIL import Image
+ 
 
-class CustomUser(AbstractUser):
-    # Make email the unique identifier
-    email = models.EmailField(_('email address'), unique=True)
-    # Add a username field for display purposes
-    username = models.CharField(_('username'), max_length=150, unique=False, null=True)  # Not unique
-
-    # Set email as the USERNAME_FIELD
-    USERNAME_FIELD = 'email'
-    # Add username to REQUIRED_FIELDS
-    REQUIRED_FIELDS = ['username']
+class Department(models.Model):
+    department = models.CharField(max_length=50)
 
     def __str__(self):
-        return self.email
+        return self.department
+
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+
+    is_manager = models.BooleanField(default=False)
+    is_production = models.BooleanField(default=False)
+    is_utilities = models.BooleanField(default=False)
+    is_purchase = models.BooleanField(default=False)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE)
+    mobile_number = models.CharField(max_length=30, blank=True)
+    image = models.ImageField(default='default.jpg', upload_to='profile_pics')
+
+    def __str__(self):
+        return f'{self.user.username} Profile'
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        img = Image.open(self.image.path)
+
+        if img.height > 300 or img.width > 300:
+            output_size = (300, 300)
+            img.thumbnail(output_size)
+            img.save(self.image.path)
